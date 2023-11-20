@@ -1,0 +1,2 @@
+from iftttGeneral import IFTTT, pauseMusic, startMusic
+__all__ = ("pauseMusic","startMusic")
