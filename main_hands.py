@@ -5,8 +5,7 @@ import numpy as np
 import asyncio
 import concurrent.futures
 
-from homeAutomation.ewelink.livingRoom import LivingRoom
-from homeAutomation.ifttt.iftttGeneral import IFTTT
+from homeAutomation.ifttt.ifttt import IFTTT_General, Livingroom, Livestock
 
 from dotenv import load_dotenv
 
@@ -15,11 +14,12 @@ load_dotenv('.env')
 
 import os
 
-EWELINK_LIVINGROOM_TOKEN_ID = os.getenv('EWELINK_LIVINGROOM_TOKEN_ID')
+EWELINK_livingroom_TOKEN_ID = os.getenv('EWELINK_livingroom_TOKEN_ID')
 IFTTT_TOKEN_ID = os.getenv('IFTTT_TOKEN_ID')
 
-livingRoom = LivingRoom()
-iftttGeneral = IFTTT()
+livingroom = Livingroom(token_id=IFTTT_TOKEN_ID)
+livestock = Livestock(token_id=IFTTT_TOKEN_ID)
+iftttGeneral = IFTTT_General(token_id=IFTTT_TOKEN_ID)
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
@@ -79,10 +79,10 @@ import aiohttp
 
 async def main():
     dStatus = {}
-    dStatus['ewelink-livingRoom-mainLight'] = False
+    dStatus['livingroomMainLight'] = [False, "livingroomMainLightOff"]
     dStatus['ifttt-startMusic'] = False
     dStatus['ifttt-pauseMusic'] = False
-
+    dStatus['livingroomGloboLight'] = [False, "livingroomGloboLightOff"]
     async with aiohttp.ClientSession() as session:
         while True:
             success, frame = cam.read()
@@ -93,28 +93,64 @@ async def main():
             if len(all_hands) == 1:
                 finger_info_hand1 = fingers_raised(all_hands[0])
 
-                if finger_info_hand1 == [True, False, False, False]:  # Indicador
-                    if dStatus['ewelink-livingRoom-mainLight'] == False:
-                        asyncio.create_task(livingRoom.mainLight(session, EWELINK_LIVINGROOM_TOKEN_ID))
-                        dStatus['ewelink-livingRoom-mainLight'] = True
+                if finger_info_hand1 == [True, False, False, False]:  #1000
+                    if dStatus['livingroomMainLight'][0] == False:
+                        print("liga/desliga sala")
+                        if dStatus['livingroomMainLight'][1] == "livingroomMainLightOff":
+                            asyncio.create_task(livingroom.MainLightOn(session))
+                            dStatus['livingroomMainLight'] = [True, "livingroomMainLightOn"]
+                        else:
+                            asyncio.create_task(livingroom.MainLightOff(session))
+                            dStatus['livingroomMainLight'] = [True, "livingroomMainLightOff"]
                 else:
-                    dStatus['ewelink-livingRoom-mainLight'] = False
+                    dStatus['livingroomMainLight'][0] = False
+
+                if finger_info_hand1 == [False, False, False, True]:  #1100
+                    if dStatus['livingroomGloboLight'][0] == False:
+                        if dStatus['livingroomGloboLight'][1] == "livingroomGloboLightOff":
+                            print('liga globo')
+                            asyncio.create_task(livingroom.globoOn(session))
+                            dStatus['livingroomGloboLight'] = [True, "livingroomGloboLightOn"]
+                        else:
+                            print('desliga globo')
+                            asyncio.create_task(livingroom.globoOff(session))
+                            dStatus['livingroomGloboLight'] = [True, "livingroomGloboLightOff"]
+                else:
+                    dStatus['livingroomGloboLight'][0] = False
                     
-                if finger_info_hand1 == [True, True, False, False]:  # Indicador + Médio
-                    if dStatus['ifttt-pauseMusic'] == False:
-                        
-                        asyncio.create_task(iftttGeneral.pauseMusic(session, IFTTT_TOKEN_ID))
-                        dStatus['ifttt-pauseMusic'] = True
-                else:
-                    dStatus['ifttt-pauseMusic'] = False
+                
+                
+                # if finger_info_hand1 == [False, True, False, False]:  #0100
+                #     if dStatus['ifttt-pauseMusic'] == False:
+                #         print("pausa a música")
+                #         asyncio.create_task(iftttGeneral.pauseMusic(session))
+                #         dStatus['ifttt-pauseMusic'] = True
+                # else:
+                #     dStatus['ifttt-pauseMusic'] = False
                     
-                if finger_info_hand1 == [False, False, False, True]:  # Indicador + Médio + Mindinho
-                    if dStatus['ifttt-startMusic'] == False:
-                        print('Start')
-                        asyncio.create_task(iftttGeneral.startMusic(session, IFTTT_TOKEN_ID))
-                        dStatus['ifttt-startMusic'] = True
-                else:
-                    dStatus['ifttt-startMusic'] = False
+                # if finger_info_hand1 == [True, True, False, False]:  #1100
+                #     if dStatus['ifttt-startMusic'] == False:
+                #         print("Inicia a música")
+                #         asyncio.create_task(iftttGeneral.startMusic(session))
+                #         dStatus['ifttt-startMusic'] = True
+                # else:
+                #     dStatus['ifttt-startMusic'] = False 
+                       
+                # if finger_info_hand1 == [False, False, True, False]:  #0010
+                #     if dStatus['ifttt-globoOn'] == False:
+                #         print('Start globoOn')
+                #         asyncio.create_task(iftttGeneral.globoOn(session))
+                #         dStatus['ifttt-globoOn'] = True
+                # else:
+                #     dStatus['ifttt-globoOn'] = False
+                       
+                # if finger_info_hand1 == [True, False, True, False]:  #1010
+                #     if dStatus['ifttt-globoOff'] == False:
+                #         print('Start globoOff')
+                #         asyncio.create_task(iftttGeneral.globoOff(session))
+                #         dStatus['ifttt-globoOff'] = True
+                # else:
+                #     dStatus['ifttt-globoOff'] = False
 
             if success:
                 cv2.imshow('Imagem', frame)
