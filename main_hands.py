@@ -84,22 +84,31 @@ async def main():
     dStatus['ifttt-pauseMusic'] = False
     dStatus['livingroomGloboLight'] = [False, "livingroomGloboLightOff"]
     async with aiohttp.ClientSession() as session:
+        bNoHands = True
+        bHands = True
         while True:
             success, frame = cam.read()
             frame = cv2.flip(frame, 1)
 
             frame, all_hands = find_hands_coord(frame)
-
-            if len(all_hands) == 1:
+            
+            if (len(all_hands) == 1):
+                if bHands:
+                    bHands = False
+                    bNoHands = True
+                    print("I'm ready for your orders!")
+                    
                 finger_info_hand1 = fingers_raised(all_hands[0])
 
                 if finger_info_hand1 == [True, False, False, False]:  #1000
                     if dStatus['livingroomMainLight'][0] == False:
-                        print("liga/desliga sala")
+                        
                         if dStatus['livingroomMainLight'][1] == "livingroomMainLightOff":
+                            print("liga sala")
                             asyncio.create_task(livingroom.MainLightOn(session))
                             dStatus['livingroomMainLight'] = [True, "livingroomMainLightOn"]
                         else:
+                            print("desliga sala")
                             asyncio.create_task(livingroom.MainLightOff(session))
                             dStatus['livingroomMainLight'] = [True, "livingroomMainLightOff"]
                 else:
@@ -151,7 +160,12 @@ async def main():
                 #         dStatus['ifttt-globoOff'] = True
                 # else:
                 #     dStatus['ifttt-globoOff'] = False
-
+            else:
+                if bNoHands:
+                    bNoHands = False
+                    bHands = True
+                    print("Show at least one hand to order something")
+                    
             if success:
                 cv2.imshow('Imagem', frame)
 
