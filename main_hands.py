@@ -23,6 +23,8 @@ iftttGeneral = IFTTT_General(token_id=IFTTT_TOKEN_ID)
 
 mp_hands = mp.solutions.hands
 mp_drawing = mp.solutions.drawing_utils
+bShowHandsDrawing = True
+
 
 hands = mp_hands.Hands()
 
@@ -57,7 +59,8 @@ def find_hands_coord(frame:np.ndarray, side_inv:bool = False)->(np.ndarray, list
                 hand_info['hand'] = hand_side.classification[0].label
             
             all_hands.append(hand_info)
-            mp_drawing.draw_landmarks(frame, hand_marks, mp_hands.HAND_CONNECTIONS)
+            if bShowHandsDrawing:
+                mp_drawing.draw_landmarks(frame, hand_marks, mp_hands.HAND_CONNECTIONS)
             
     return frame, all_hands
 
@@ -86,16 +89,19 @@ async def main():
     async with aiohttp.ClientSession() as session:
         bNoHands = True
         bHands = True
+        texto = "Show at least one hand to order something"
         while True:
             success, frame = cam.read()
             frame = cv2.flip(frame, 1)
-
+            cv2.putText(frame, texto, (resolution_x - 800, resolution_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255, 255), 2)
+            
             frame, all_hands = find_hands_coord(frame)
             
             if (len(all_hands) == 1):
                 if bHands:
                     bHands = False
                     bNoHands = True
+                    texto = "I'm ready for your orders!"
                     print("I'm ready for your orders!")
                     
                 finger_info_hand1 = fingers_raised(all_hands[0])
@@ -164,6 +170,7 @@ async def main():
                 if bNoHands:
                     bNoHands = False
                     bHands = True
+                    texto = "Show at least one hand to order something"
                     print("Show at least one hand to order something")
                     
             if success:
