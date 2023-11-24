@@ -63,7 +63,10 @@ class HandGestureController:
                 cv2.putText(frame, texto, (self.resolution_x - 800, self.resolution_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
 
                 frame, all_hands = self.find_hands_coord(frame)
-
+                
+                if self.bPutIcon:
+                    frame = self.putIcon(frame)
+                
                 if len(all_hands) == 1:
                     if bHands:
                         bHands = False
@@ -72,6 +75,16 @@ class HandGestureController:
                         print("I'm ready for your orders!")
                         
                     finger_info_hand1 = self.fingers_raised(all_hands[0])
+                    
+                    if self.bPutIcon:
+                        if all_hands[0]:
+                            x = all_hands[0]['coords'][8][0]
+                            y = all_hands[0]['coords'][8][1]
+                            
+                            if (50 <= x <= 100) & (50 <= y <= 100):
+                                print('passou pela tecla')
+                                frame = self.putIcon(frame, color = (0,0,255))
+                    
                     if finger_info_hand1 == [True, False, False, False]:  #1000
                         if dStatus['livingroomMainLight'][0] == False:
                             
@@ -106,10 +119,7 @@ class HandGestureController:
                         texto = "Show at least one hand to order something"
                         print("Show at least one hand to order something")
 
-                if self.bShowImage and success:
-                    if self.bPutIcon:
-                        frame = self.putIcon(frame)
-                        
+                if self.bShowImage and success:                        
                     cv2.imshow('Imagem', frame)
 
                 key = cv2.waitKey(1)
