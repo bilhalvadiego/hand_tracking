@@ -7,7 +7,7 @@ from .ifttt.ifttt import IFTTT_General, Livingroom, Livestock
 import aiohttp
 
 class HandGestureController:
-    def __init__(self, ifttt_token_id, show_hands_drawing=True, b_show_image=True):
+    def __init__(self, ifttt_token_id, show_hands_drawing=True, b_show_image=True, bPutIcon = True):
         """
         Inicializa a classe HandGestureController.
 
@@ -20,6 +20,7 @@ class HandGestureController:
         # Configuração da variável que controla se as linhas da mão serão desenhadas
         self.bShowHandsDrawing = show_hands_drawing
         self.bShowImage = b_show_image
+        self.bPutIcon = bPutIcon
 
         self.IFTTT_TOKEN_ID = ifttt_token_id
 
@@ -106,6 +107,9 @@ class HandGestureController:
                         print("Show at least one hand to order something")
 
                 if self.bShowImage and success:
+                    if self.bPutIcon:
+                        frame = self.putIcon(frame)
+                        
                     cv2.imshow('Imagem', frame)
 
                 key = cv2.waitKey(1)
@@ -176,3 +180,11 @@ class HandGestureController:
                 fingers.append(False)
 
         return fingers
+    
+    def putIcon(self, frame: np.ndarray, color:str = (0,255,0)) -> np.ndarray:
+        frame = frame
+        
+        frame = cv2.rectangle(frame, (50,50), (100,100), color)
+        frame = cv2.putText(frame, 'Q', (65,85), cv2.FONT_HERSHEY_COMPLEX, 1, color, 2)
+        
+        return frame
