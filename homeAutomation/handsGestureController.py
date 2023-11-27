@@ -2,7 +2,7 @@ import cv2
 import mediapipe as mp
 import numpy as np
 import asyncio
-import concurrent.futures
+# import concurrent.futures
 from .ifttt.ifttt import IFTTT_General, Livingroom, Livestock
 import aiohttp
 
