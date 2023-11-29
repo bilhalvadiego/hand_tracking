@@ -10,7 +10,7 @@ import os
 
 async def main():
     IFTTT_TOKEN_ID = os.getenv('IFTTT_TOKEN_ID')
-    hgc = HGC(ifttt_token_id=IFTTT_TOKEN_ID, show_hands_drawing=False, b_show_image=False, bPutIcon=True)
+    hgc = HGC(ifttt_token_id=IFTTT_TOKEN_ID, show_hands_drawing=True, b_show_image=True, bPutIcon=True)
     await hgc.run()
 
 if __name__ == "__main__":
