@@ -6,8 +6,11 @@ import asyncio
 from .ifttt.ifttt import IFTTT_General, Livingroom, Livestock
 import aiohttp
 
+import cv2
+import mediapipe as mp
+
 class HandGestureController:
-    def __init__(self, ifttt_token_id, show_hands_drawing=True, b_show_image=True, bPutIcon = True):
+    def __init__(self, ifttt_token_id, show_hands_drawing=True, b_show_image=True, bPutIcon=True, camera_option="best"):
         """
         Inicializa a classe HandGestureController.
 
@@ -15,6 +18,8 @@ class HandGestureController:
         - ifttt_token_id (str): Token de autenticação para o IFTTT.
         - show_hands_drawing (bool): Se True, desenha as linhas das mãos na imagem.
         - b_show_image (bool): Se True, exibe a imagem capturada pela câmera usando cv2.imshow.
+        - bPutIcon (bool): Se True, coloca um ícone na tela.
+        - camera_option (str): Opção para escolher a câmera a ser aberta. Pode ser "best", "min_index", "max_index" ou um índice específico.
 
         """
         # Configuração da variável que controla se as linhas da mão serão desenhadas
@@ -31,15 +36,64 @@ class HandGestureController:
         self.mp_hands = mp.solutions.hands
         self.mp_drawing = mp.solutions.drawing_utils
 
-        self.hands = self.mp_hands.Hands()
+        # Obtém o índice da câmera de acordo com a opção escolhida
+        if camera_option == "min_index":
+            best_camera_index = 0
+        elif camera_option == "max_index":
+            best_camera_index = self.get_max_camera_index()
+        elif camera_option.isdigit():
+            best_camera_index = int(camera_option)
+        else:
+            best_camera_index = self.get_best_resolution_camera()
 
-        self.cam = cv2.VideoCapture(0)
+        # Abre a câmera de acordo com o índice escolhido
+        if best_camera_index != -1:
+            self.cam = cv2.VideoCapture(best_camera_index)
+            self.resolution_x = int(self.cam.get(cv2.CAP_PROP_FRAME_WIDTH))
+            self.resolution_y = int(self.cam.get(cv2.CAP_PROP_FRAME_HEIGHT))
+        else:
+            print("Nenhuma câmera encontrada.")
+            # Defina resoluções padrão caso não seja possível encontrar uma câmera
+            self.resolution_x = 1280
+            self.resolution_y = 720
 
-        self.resolution_x = 1280
-        self.resolution_y = 720
-
+        # Configuração da resolução da câmera
         self.cam.set(cv2.CAP_PROP_FRAME_WIDTH, self.resolution_x)
         self.cam.set(cv2.CAP_PROP_FRAME_HEIGHT, self.resolution_y)
+
+        # Inicialização do modelo de mãos
+        self.hands = self.mp_hands.Hands()
+
+    def get_best_resolution_camera(self):
+        # Obtém o número de câmeras disponíveis diretamente do sistema
+        max_camera_index = self.get_max_camera_index()
+
+        # Tenta abrir as câmeras em ordem decrescente de índice
+        for camera_index in range(max_camera_index, -1, -1):
+            try:
+                cap = cv2.VideoCapture(camera_index)
+                if cap.isOpened():
+                    # Se a câmera foi aberta com sucesso, retorna o índice dela
+                    cap.release()
+                    return camera_index
+                else:
+                    print(f"Não foi possível abrir a câmera {camera_index}.")
+            except Exception as e:
+                print(f"Erro ao tentar abrir câmera {camera_index}: {e}")
+
+        # Se todas as tentativas falharam, retorna -1
+        return -1
+
+    def get_max_camera_index(self):
+        # Encontra o índice máximo das câmeras disponíveis
+        max_camera_index = 0
+        while cv2.VideoCapture(max_camera_index).isOpened():
+            max_camera_index += 1
+
+        return max_camera_index
+    
+    
+# hand_controller = HandGestureController(ifttt_token_id='seu_token_aqui')
 
     async def run(self):
         """
